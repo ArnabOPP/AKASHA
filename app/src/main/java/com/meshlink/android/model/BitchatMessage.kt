@@ -33,9 +33,30 @@ enum class MeshMessageType {
 
 data class LocationCoordinate(val latitude: Double, val longitude: Double)
 
+private val LOCATION_JSON_LAT = Regex("\"lat(?:itude)?\"\\s*:\\s*(-?\\d+\\.?\\d*)")
+private val LOCATION_JSON_LNG = Regex("\"(?:lng|lon|longitude)\"\\s*:\\s*(-?\\d+\\.?\\d*)")
+private val LOCATION_TEXT_LAT = Regex("(?i)lat\\w*[:=]\\s*(-?\\d+\\.\\d+)")
+private val LOCATION_TEXT_LNG = Regex("(?i)ln[gm]\\w*[:=]\\s*(-?\\d+\\.\\d+)")
+private val LOCATION_CSV = Regex("(-?\\d+\\.\\d+),\\s*(-?\\d+\\.\\d+)")
+
 fun parseLocation(content: String): LocationCoordinate? {
-    val regex = Regex("(-?\\d+\\.\\d+),\\s*(-?\\d+\\.\\d+)")
-    val match = regex.find(content)
+    // JSON: {"latitude": .., "longitude": ..} or the short-key form {"lat": .., "lng": ..}
+    val jsonLat = LOCATION_JSON_LAT.find(content)
+    val jsonLng = LOCATION_JSON_LNG.find(content)
+    if (jsonLat != null && jsonLng != null) {
+        return LocationCoordinate(jsonLat.groupValues[1].toDouble(), jsonLng.groupValues[1].toDouble())
+    }
+
+    // Text lines: "Lat: 19.0760" / "Lng: 72.8777" (no comma between them, so the CSV regex below
+    // wouldn't catch this format)
+    val textLat = LOCATION_TEXT_LAT.find(content)
+    val textLng = LOCATION_TEXT_LNG.find(content)
+    if (textLat != null && textLng != null) {
+        return LocationCoordinate(textLat.groupValues[1].toDouble(), textLng.groupValues[1].toDouble())
+    }
+
+    // geo: URIs and plain "lat, lng" pairs
+    val match = LOCATION_CSV.find(content)
     if (match != null) {
         return LocationCoordinate(match.groupValues[1].toDouble(), match.groupValues[2].toDouble())
     }

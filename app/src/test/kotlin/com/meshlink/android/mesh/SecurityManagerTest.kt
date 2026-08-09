@@ -5,6 +5,8 @@ import com.MeshLink.android.crypto.EncryptionService
 import com.MeshLink.android.model.IdentityAnnouncement
 import com.MeshLink.android.protocol.MeshLinkPacket
 import com.MeshLink.android.protocol.MessageType
+import com.MeshLink.android.security.MeshMode
+import com.MeshLink.android.security.SecurityPolicy
 import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -61,15 +63,22 @@ class SecurityManagerTest {
 
     @Before
     fun setup() {
+        // These tests exercise the "reject anything unverifiable" guarantee, which SecurityPolicy
+        // only enforces in Strict mode — the real app defaults to Lenient (admit + flag in UI) so
+        // older/unverified clients stay reachable. Force Strict here so the rejection tests match
+        // the behavior they're actually asserting on.
+        SecurityPolicy.set(RuntimeEnvironment.getApplication(), MeshMode.Strict)
+
         fakeEncryptionService = FakeEncryptionService()
         mockDelegate = mock()
-        
+
         securityManager = SecurityManager(fakeEncryptionService, myPeerID)
         securityManager.delegate = mockDelegate
     }
 
     @After
     fun tearDown() {
+        SecurityPolicy.set(RuntimeEnvironment.getApplication(), MeshMode.Lenient)
         if (::securityManager.isInitialized) {
             securityManager.shutdown()
         }
