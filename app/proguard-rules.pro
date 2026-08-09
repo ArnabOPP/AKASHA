@@ -31,3 +31,10 @@
 -keepclassmembers class * implements android.location.LocationListener {
     public <methods>;
 }
+
+# MediaPipe GenAI (LLM Inference) ships protobuf-generated code that references compile-time-only
+# annotation classes (ProtoField, ProtoPresenceBits, Internal$ProtoNonnullApi, etc.) from full
+# protobuf-java. The app depends on protobuf-javalite instead, so those annotation classes are
+# never on the runtime classpath — they're not needed at runtime, only R8 needs to stop treating
+# their absence as an error.
+-dontwarn com.google.protobuf.**
